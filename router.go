@@ -8,7 +8,6 @@ import (
 type LogisticsRouter struct {
 }
 
-func (l LogisticsRouter) ServeHTTP(w http.ResponseWriter,r *http.Request) {
-	fmt.Fprintln(w,"hello world")
+func (l LogisticsRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "hello world")
 }
-
