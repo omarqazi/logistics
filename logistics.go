@@ -6,9 +6,6 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting logistics server...")
-	if err := http.ListenAndServe(":8080", LogisticsRouter{}); err != nil {
-		fmt.Println("Error starting logistics server:", err)
-		return
-	}
+	err := http.ListenAndServe(":8080", nil)
+	fmt.Println(err)
 }

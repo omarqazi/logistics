@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 )
 
-type LogisticsRouter struct {
+var routes = map[string]http.Handler{
+	"/locations/": LocationsController{},
 }
 
-func (l LogisticsRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "hello world")
+func init() {
+	for rule, handler := range routes {
+		http.Handle(rule, handler)
+	}
 }
