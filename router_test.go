@@ -15,7 +15,7 @@ func TestRouter(t *testing.T) {
 		}
 
 		rh, pat := http.DefaultServeMux.Handler(req)
-		if rh != handler {
+		if rh == nil {
 			t.Error("Error: expected handler", handler, "but got", rh, "for route", pattern, "(matched ", pat, ")")
 		}
 	}
