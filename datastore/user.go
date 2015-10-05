@@ -7,6 +7,8 @@ import (
 
 var getUserStatement *sql.Stmt
 var insertUserStatement *sql.Stmt
+var updateUserStatement *sql.Stmt
+var deleteUserStatement *sql.Stmt
 
 type User struct {
 	Id        string
@@ -68,29 +70,69 @@ func (u User) Location() Point {
 	}
 }
 
+func (u *User) UpdateTimestamps(updateCreate bool) {
+	now := time.Now()
+	if updateCreate {
+		u.CreatedAt = now
+	}
+	u.UpdatedAt = now
+	return
+}
+
+func (u *User) EnsureId() {
+	if u.Id == "" {
+		u.Id = NewUUID()
+	}
+}
+
 func (u *User) Create() (err error) {
-	query := `
-	insert into users (
-		id, public_key, createdat, updatedat, device_id
-	) VALUES (
-		$1, $2, now(), now(), $3
-	)
-	`
 	if insertUserStatement == nil {
-		insertUserStatement, err = Postgres.Prepare(query)
+		insertUserStatement, err = Postgres.Prepare(`
+		insert into users (
+			id, public_key, createdat, updatedat, device_id, location
+		) VALUES (
+			$1, $2, now(), now(), $3, ST_GeometryFromText($4, 4326)
+		);
+		`)
+
 		if err != nil {
 			return err
 		}
 	}
 
-	if u.Id == "" {
-		u.Id = NewUUID()
+	u.EnsureId()
+	u.UpdateTimestamps(true)
+
+	_, err = insertUserStatement.Exec(u.Id, u.PublicKey, u.DeviceId, u.Location())
+	return
+}
+
+func (u *User) Update() (err error) {
+	if updateUserStatement == nil {
+		updateUserStatement, err = Postgres.Prepare(`
+			update users set public_key = $1, updatedat = now(), device_id = $2,
+			location = ST_GeometryFromText($3, 4326) where id = $4;
+		`)
+		if err != nil {
+			return err
+		}
 	}
 
-	now := time.Now()
-	u.CreatedAt = now
-	u.UpdatedAt = now
+	u.UpdateTimestamps(false)
+	_, err = updateUserStatement.Exec(u.PublicKey, u.DeviceId, u.Location(), u.Id)
+	return
+}
 
-	_, err = insertUserStatement.Exec(u.Id, u.PublicKey, u.DeviceId)
+func (u *User) Delete() (err error) {
+	if deleteUserStatement == nil {
+		deleteUserStatement, err = Postgres.Prepare(`
+			delete from users where id = $1;
+		`)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = deleteUserStatement.Exec(u.Id)
 	return
 }

@@ -12,15 +12,11 @@ type Point struct {
 }
 
 func (p Point) String() string {
-	fmt.Println("called string")
 	wkt := fmt.Sprintf("POINT(%v %v)", p.Longitude, p.Latitude)
-	sql := fmt.Sprintf("ST_GeometryFromText('%s', %d)", wkt, SRID)
-	return sql
+	return wkt
 }
 
 func (p Point) Value() (driver.Value, error) {
-	fmt.Println("Called value")
 	wkt := fmt.Sprintf("POINT(%v %v)", p.Longitude, p.Latitude)
-	sql := fmt.Sprintf("ST_GeometryFromText('%s', %d)", wkt, SRID)
-	return sql, nil
+	return wkt, nil
 }
