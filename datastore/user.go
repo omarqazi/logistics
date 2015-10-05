@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
@@ -85,6 +86,28 @@ func (u *User) EnsureId() {
 	}
 }
 
+func (u User) Channel() string {
+	return "user-" + u.Id
+}
+
+func (u User) ToJSON() (string, error) {
+	bytes, err := json.Marshal(u)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func (u User) BroadcastUpdate() (err error) {
+	jsonString, err := u.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	err = PublishNotification(u.Channel(), jsonString)
+	return
+}
+
 func (u *User) Create() (err error) {
 	if insertUserStatement == nil {
 		insertUserStatement, err = Postgres.Prepare(`
@@ -104,6 +127,7 @@ func (u *User) Create() (err error) {
 	u.UpdateTimestamps(true)
 
 	_, err = insertUserStatement.Exec(u.Id, u.PublicKey, u.DeviceId, u.Location())
+	u.BroadcastUpdate()
 	return
 }
 
@@ -120,6 +144,7 @@ func (u *User) Update() (err error) {
 
 	u.UpdateTimestamps(false)
 	_, err = updateUserStatement.Exec(u.PublicKey, u.DeviceId, u.Location(), u.Id)
+	u.BroadcastUpdate()
 	return
 }
 
@@ -134,5 +159,6 @@ func (u *User) Delete() (err error) {
 	}
 
 	_, err = deleteUserStatement.Exec(u.Id)
+	u.BroadcastUpdate()
 	return
 }
