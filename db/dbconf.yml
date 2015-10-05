@@ -1,0 +1,10 @@
+development:
+  driver: postgres
+  open: dbname=logistics user=postgres password=postgres sslmode=disable
+  import: github.com/lib/pq
+  dialect: postgres
+testing:
+  driver: postgres
+  open: dbname=logistics user=postgres sslmode=disable
+  import: github.com/lib/pq
+  dialect: postgres
