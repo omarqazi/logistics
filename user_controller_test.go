@@ -141,4 +141,8 @@ func TestPostUser(t *testing.T) {
 	if dbUser == nil {
 		t.Error("Posted user not found in database")
 	}
+
+	if err := dbUser.Delete(); err != nil {
+		t.Error("Error deleting user:", err)
+	}
 }
