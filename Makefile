@@ -1,2 +1,2 @@
 test :
-	go test . ./datastore
+	go test . ./datastore ./auth
