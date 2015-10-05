@@ -14,10 +14,10 @@ type User struct {
 	Id        string
 	PublicKey string
 	CreatedAt time.Time
-	UpdatedAt time.Time `json:"-"`
-	DeviceId  string    `json:"-"` // for push notifications
-	Latitude  float64   `json:"-"`
-	Longitude float64   `json:"-"`
+	UpdatedAt time.Time
+	DeviceId  string // for push notifications
+	Latitude  float64
+	Longitude float64
 }
 
 func GetUser(userId string) (u *User, err error) {

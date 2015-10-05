@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/omarqazi/logistics/datastore"
@@ -66,5 +67,78 @@ func TestGetUser(t *testing.T) {
 
 	if dbUser.Id != coolUser.Id || dbUser.PublicKey != coolUser.PublicKey {
 		t.Error("Error: expected user", coolUser, "but got", dbUser)
+	}
+}
+
+func TestGetMissingUser(t *testing.T) {
+	resp := httptest.NewRecorder()
+	uri := fmt.Sprintf("/users/%s", datastore.NewUUID())
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	http.DefaultServeMux.ServeHTTP(resp, req)
+	if resp.Code != 404 {
+		t.Fatal("Expected 404 but got", resp.Code)
+	}
+
+	p, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(p), "does not exist") {
+		t.Error("User controller 404 response does not contain phrase 'does not exist'", string(p))
+	}
+}
+
+func TestPostUser(t *testing.T) {
+	resp := httptest.NewRecorder()
+	uri := "/users/"
+	user := datastore.User{
+		PublicKey: "something",
+		Latitude:  10.0,
+		Longitude: 11.0,
+	}
+	jsonBytes, err := json.Marshal(user)
+	if err != nil {
+		t.Fatal("Error marshaling json:", err)
+	}
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	http.DefaultServeMux.ServeHTTP(resp, req)
+	if resp.Code != 200 {
+		t.Fatal("Expected 200 on user create but got", resp.Code)
+	}
+
+	p, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var parsedUser datastore.User
+	if err := json.Unmarshal(p, &parsedUser); err != nil {
+		t.Fatal(err)
+	}
+
+	if parsedUser.Id == "" {
+		t.Error("Error: parsed user has no ID")
+	}
+
+	if parsedUser.PublicKey != user.PublicKey {
+		t.Error("Error: expected public key", user.PublicKey, "but got", parsedUser.PublicKey)
+	}
+
+	dbUser, err := datastore.GetUser(parsedUser.Id)
+	if err != nil {
+		t.Error("Error getting posted user:", err)
+		return
+	}
+	if dbUser == nil {
+		t.Error("Posted user not found in database")
 	}
 }
