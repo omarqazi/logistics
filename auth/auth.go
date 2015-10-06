@@ -8,6 +8,9 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"io"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func GeneratePrivateKey(bits int) (p *rsa.PrivateKey, e error) {
@@ -76,4 +79,47 @@ func ValidateSignatureForMessage(msg string, sig []byte, pub *rsa.PublicKey) (er
 
 	err = rsa.VerifyPSS(pub, crypto.SHA256, hashSum, sig, nil)
 	return
+}
+
+const tokenDelimeter = "--"
+
+func NewToken(p *rsa.PrivateKey) (string, error) {
+	unixTime := time.Now().Unix()
+	timeString := strconv.FormatInt(unixTime, 16)
+	sig, err := SignMessageWithKey(p, timeString)
+	if err != nil {
+		return "", err
+	}
+	bsf := base64.URLEncoding.EncodeToString(sig)
+	finalToken := timeString + tokenDelimeter + bsf
+	return finalToken, nil
+}
+
+func TokenValid(token string, maxDuration time.Duration, pub *rsa.PublicKey) bool {
+	comps := strings.Split(token, tokenDelimeter)
+	timeString := comps[0]
+	signature := comps[1]
+	sig, err := base64.URLEncoding.DecodeString(signature)
+	if err != nil {
+		return false
+	}
+
+	unixTime, err := strconv.ParseInt(timeString, 16, 64)
+	if err != nil {
+		return false
+	}
+
+	signedAt := time.Unix(unixTime, 0)
+	now := time.Now()
+	expirationTime := signedAt.Add(maxDuration)
+
+	if signedAt.After(now) || now.After(expirationTime) {
+		return false
+	}
+
+	if err := ValidateSignatureForMessage(timeString, sig, pub); err != nil {
+		return false
+	}
+
+	return true
 }

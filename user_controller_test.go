@@ -195,5 +195,4 @@ func TestPutUser(t *testing.T) {
 	if parsedUser.PublicKey != updatedUser.PublicKey {
 		t.Error("Error: expected public key", updatedUser.PublicKey, "but got", parsedUser.PublicKey)
 	}
-
 }

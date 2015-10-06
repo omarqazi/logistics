@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestGenerateKey(t *testing.T) {
@@ -94,5 +95,39 @@ func TestSign(t *testing.T) {
 	publicKey := privateKey.PublicKey
 	if err := ValidateSignatureForMessage("hello world", sig, &publicKey); err != nil {
 		t.Fatal("Error verifying signature:", err)
+	}
+}
+
+func TestToken(t *testing.T) {
+	privateKey, err := GeneratePrivateKey(1024)
+	if err != nil {
+		t.Fatal("Error generating private key:", err)
+	}
+
+	token, err := NewToken(privateKey)
+	if err != nil {
+		t.Fatal("Error generating token:", err)
+	}
+
+	expirationDuration := 100 * time.Millisecond
+	fmt.Println("Generated token", token)
+
+	if !TokenValid(token, 1*time.Hour, &privateKey.PublicKey) {
+		t.Fatal("Error: freshly generated token already invalid:", token)
+	}
+
+	time.Sleep(expirationDuration)
+
+	if TokenValid(token, expirationDuration, &privateKey.PublicKey) {
+		t.Fatal("Error: token still valid after expiration")
+	}
+
+	anotherKey, err := GeneratePrivateKey(1024)
+	if err != nil {
+		t.Fatal("Error generating private key:", err)
+	}
+
+	if TokenValid(token, 1*time.Hour, &anotherKey.PublicKey) {
+		t.Fatal("Error: token valid for another public key")
 	}
 }
