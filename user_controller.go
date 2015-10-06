@@ -12,6 +12,19 @@ import (
 type UserController struct {
 }
 
+func init() {
+	key, _ := auth.GeneratePrivateKey(1024)
+	pks, _ := auth.StringForPublicKey(&key.PublicKey)
+	user := datastore.User{
+		PublicKey: pks,
+		DeviceId:  "some-id",
+	}
+	user.Create()
+	fmt.Println("Created user", user.Id)
+	token, _ := auth.NewToken(key)
+	fmt.Println("Use token", token)
+}
+
 func (uc UserController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		getUser(w, r)
