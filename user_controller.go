@@ -16,6 +16,8 @@ func (uc UserController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		getUser(w, r)
 	} else if r.Method == "POST" {
 		postUser(w, r)
+	} else if r.Method == "PUT" {
+		putUser(w, r)
 	}
 }
 
@@ -60,6 +62,49 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error creating user:", err)
 		http.Error(w, "Error creating user", 500)
 		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(user); err != nil {
+		log.Println("Error marshaling saved user:", err)
+		http.Error(w, "Error marshaling user data", 500)
+		return
+	}
+	return
+}
+
+func putUser(w http.ResponseWriter, r *http.Request) {
+	dec := json.NewDecoder(r.Body)
+	var user datastore.User
+	if err := dec.Decode(&user); err != nil {
+		log.Println("Error decoding user:", err)
+		http.Error(w, "Error decoding user", 400)
+		return
+	}
+
+	dbUser, err := datastore.GetUser(user.Id)
+	if err != nil {
+		http.Error(w, "User not found", 404)
+		return
+	}
+
+	if user.PublicKey == "" {
+		user.PublicKey = dbUser.PublicKey
+	}
+
+	if user.DeviceId == "" {
+		user.DeviceId = dbUser.DeviceId
+	}
+
+	if user.Latitude == 0.0 && user.Longitude == 0.0 {
+		user.Latitude = dbUser.Latitude
+		user.Longitude = dbUser.Longitude
+	}
+
+	if err := user.Update(); err != nil {
+		log.Println("Error updating user", user)
+		http.Error(w, "Error updating user", 500)
 	}
 
 	w.Header().Add("Content-Type", "application/json")

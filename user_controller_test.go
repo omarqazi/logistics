@@ -146,3 +146,54 @@ func TestPostUser(t *testing.T) {
 		t.Error("Error deleting user:", err)
 	}
 }
+
+func TestPutUser(t *testing.T) {
+	user := datastore.User{
+		PublicKey: "some-key",
+		DeviceId:  "some-id",
+		Latitude:  5.0,
+		Longitude: 6.0,
+	}
+
+	if err := user.Create(); err != nil {
+		t.Fatal("Error creating user:", err)
+	}
+
+	updatedUser := datastore.User{
+		Id:        user.Id,
+		PublicKey: "updated-key",
+	}
+
+	jsonBytes, err := json.Marshal(updatedUser)
+	if err != nil {
+		t.Fatal("Error marshaling user:", err)
+	}
+
+	resp := httptest.NewRecorder()
+	uri := fmt.Sprintf("/users/%s", user.Id)
+	req, err := http.NewRequest("PUT", uri, bytes.NewBuffer(jsonBytes))
+
+	http.DefaultServeMux.ServeHTTP(resp, req)
+	if resp.Code != 200 {
+		t.Fatal("Expected 200 on user create but got", resp.Code)
+	}
+
+	p, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var parsedUser datastore.User
+	if err := json.Unmarshal(p, &parsedUser); err != nil {
+		t.Fatal(err)
+	}
+
+	if parsedUser.Id == "" {
+		t.Error("Error: parsed user has no ID")
+	}
+
+	if parsedUser.PublicKey != updatedUser.PublicKey {
+		t.Error("Error: expected public key", updatedUser.PublicKey, "but got", parsedUser.PublicKey)
+	}
+
+}
