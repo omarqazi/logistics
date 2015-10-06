@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/omarqazi/logistics/auth"
 	"github.com/omarqazi/logistics/datastore"
 	"log"
 	"net/http"
@@ -89,6 +90,11 @@ func putUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rsaKey, _ := dbUser.RSAKey()
+	if ok := auth.Request(w, r, rsaKey); !ok {
+		return
+	}
+
 	if user.PublicKey == "" {
 		user.PublicKey = dbUser.PublicKey
 	}
@@ -112,7 +118,6 @@ func putUser(w http.ResponseWriter, r *http.Request) {
 	if err := enc.Encode(user); err != nil {
 		log.Println("Error marshaling saved user:", err)
 		http.Error(w, "Error marshaling user data", 500)
-		return
 	}
 	return
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/omarqazi/logistics/auth"
 	"github.com/omarqazi/logistics/datastore"
 	"io/ioutil"
 	"net/http"
@@ -148,8 +149,18 @@ func TestPostUser(t *testing.T) {
 }
 
 func TestPutUser(t *testing.T) {
+	key, err := auth.GeneratePrivateKey(1024)
+	if err != nil {
+		t.Fatal("Error generating private key:", err)
+	}
+
+	pubKeyString, err := auth.StringForPublicKey(&key.PublicKey)
+	if err != nil {
+		t.Fatal("Error serializing public key:", err)
+	}
+
 	user := datastore.User{
-		PublicKey: "some-key",
+		PublicKey: pubKeyString,
 		DeviceId:  "some-id",
 		Latitude:  5.0,
 		Longitude: 6.0,
@@ -169,9 +180,15 @@ func TestPutUser(t *testing.T) {
 		t.Fatal("Error marshaling user:", err)
 	}
 
+	token, err := auth.NewToken(key)
+	if err != nil {
+		t.Fatal("Error generating API token:", err)
+	}
+
 	resp := httptest.NewRecorder()
 	uri := fmt.Sprintf("/users/%s", user.Id)
 	req, err := http.NewRequest("PUT", uri, bytes.NewBuffer(jsonBytes))
+	req.Header.Add("X-API-Token", token)
 
 	http.DefaultServeMux.ServeHTTP(resp, req)
 	if resp.Code != 200 {
@@ -194,5 +211,9 @@ func TestPutUser(t *testing.T) {
 
 	if parsedUser.PublicKey != updatedUser.PublicKey {
 		t.Error("Error: expected public key", updatedUser.PublicKey, "but got", parsedUser.PublicKey)
+	}
+
+	if err := user.Delete(); err != nil {
+		t.Error("Error deleting user", err)
 	}
 }

@@ -97,8 +97,12 @@ func NewToken(p *rsa.PrivateKey) (string, error) {
 
 func TokenValid(token string, maxDuration time.Duration, pub *rsa.PublicKey) bool {
 	comps := strings.Split(token, tokenDelimeter)
+	if len(comps) < 2 {
+		return false
+	}
 	timeString := comps[0]
 	signature := comps[1]
+
 	sig, err := base64.URLEncoding.DecodeString(signature)
 	if err != nil {
 		return false

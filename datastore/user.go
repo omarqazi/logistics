@@ -1,8 +1,10 @@
 package datastore
 
 import (
+	"crypto/rsa"
 	"database/sql"
 	"encoding/json"
+	"github.com/omarqazi/logistics/auth"
 	"time"
 )
 
@@ -77,6 +79,11 @@ func (u *User) UpdateTimestamps(updateCreate bool) {
 		u.CreatedAt = now
 	}
 	u.UpdatedAt = now
+	return
+}
+
+func (u User) RSAKey() (k *rsa.PublicKey, e error) {
+	k, e = auth.PublicKeyFromString(u.PublicKey)
 	return
 }
 
