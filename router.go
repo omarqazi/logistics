@@ -4,9 +4,12 @@ import (
 	"net/http"
 )
 
+const staticPath = "www"
+
 var routes = map[string]http.Handler{
 	"/locations/": LocationsController{},
 	"/users/":     UserController{},
+	"/":           http.FileServer(http.Dir(staticPath)),
 }
 
 func init() {
