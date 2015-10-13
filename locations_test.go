@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -19,11 +18,7 @@ func TestLocationsController(t *testing.T) {
 	locationsController := LocationsController{}
 	locationsController.ServeHTTP(resp, req)
 
-	if p, err := ioutil.ReadAll(resp.Body); err != nil {
+	if _, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
-	} else {
-		if !strings.Contains(string(p), "locations controller") {
-			t.Error("Locations controller response does not contain the phrase locations controller")
-		}
 	}
 }
