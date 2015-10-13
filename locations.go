@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/omarqazi/logistics/auth"
+	"github.com/omarqazi/logistics/auth"
 	"github.com/omarqazi/logistics/datastore"
 	"golang.org/x/net/websocket"
 	"log"
@@ -26,15 +26,15 @@ func (l LocationsController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//rsaKey, err := user.RSAKey()
-	//if err != nil {
-	//	http.Error(w,"Error authenticating",500)
-	//	return
-	//}
+	rsaKey, err := user.RSAKey()
+	if err != nil {
+		http.Error(w, "Error authenticating", 500)
+		return
+	}
 
-	//if ok := auth.Request(w,r,rsaKey); !ok {
-	//	return
-	//}
+	if ok := auth.Request(w, r, rsaKey); !ok {
+		return
+	}
 
 	webSocketHandler.ServeHTTP(w, r)
 }
@@ -49,9 +49,12 @@ func WebSocketServer(ws *websocket.Conn) {
 	for {
 		_, payload, err := datastore.ReceiveMessage(user.Channel())
 		if err != nil {
-			fmt.Fprintln(ws, "Error:", err)
+			log.Println("WebSocket Error:", err)
 			return
 		}
-		fmt.Fprintln(ws, payload)
+		if _, err := fmt.Fprintln(ws, payload); err != nil {
+			// client probably closed socket
+			return
+		}
 	}
 }
