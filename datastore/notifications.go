@@ -6,7 +6,7 @@ func PublishNotification(channel string, payload string) (err error) {
 }
 
 func ReceiveMessage(chin string) (chout string, payload string, err error) {
-	pubsub, err := Redis.Subscribe(chin)
+	pubsub, err := Redis.PSubscribe(chin)
 	if err != nil {
 		return "", "", err
 	}
