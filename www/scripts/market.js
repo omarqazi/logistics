@@ -2,7 +2,7 @@ var trackedUser = "a5d5ce3c-9b83-4457-9b1a-4159f793cbe2";
 var websock;
 var map = null;
 var marker = null;
-var moved = false;
+
 $(window).load(function() {
 	var webSocketUrl = "ws://localhost:8080/locations/";
 	var fullUrl = webSocketUrl + trackedUser;
@@ -19,6 +19,7 @@ $(window).load(function() {
 	
 	websock.onmessage = function(evt) {
 		var userPayload = JSON.parse(evt.data);
+		console.log(userPayload);
 		var myLatLng = {lat: userPayload.Latitude, lng: userPayload.Longitude};
 		
 		if (marker !== null) {
@@ -31,10 +32,7 @@ $(window).load(function() {
 	  	  });	
 		}
 		
-		if (!moved) {
-		  	map.setCenter(myLatLng);
-			moved = true;	
-		}
+	  	map.setCenter(myLatLng);
 	};
 	
 	websock.onerror = function(evt) {
