@@ -5,7 +5,8 @@ var markers = {};
 var changed = false;
 
 $(window).load(function() {
-	var webSocketUrl = "ws://localhost:8080/locations/";
+	var domainAndPort = location.hostname + (location.port ? ':' + location.port : '');
+	var webSocketUrl = "ws://" + domainAndPort + "/locations/";
 	var fullUrl = webSocketUrl + trackedUser;
 	websock = new WebSocket(fullUrl);
 	websock.onopen= function(evt) {
