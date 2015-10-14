@@ -1,8 +1,9 @@
-var trackedUser = "a5d5ce3c-9b83-4457-9b1a-4159f793cbe2";
+var trackedUser = "bb30ed5f-c387-43d3-89e3-d1ac95d077ab";
 var websock;
 var map = null;
 var markers = {};
 var changed = false;
+var follow = false;
 
 $(window).load(function() {
 	var domainAndPort = location.hostname + (location.port ? ':' + location.port : '');
@@ -46,7 +47,7 @@ $(window).load(function() {
 function loadMap() {
     map = new google.maps.Map(document.getElementById('map'), {
        center: {lat: -34.397, lng: 150.644},
-		zoom: 12
+		zoom: 14
      });
 }
 
@@ -57,7 +58,16 @@ function AnimatedMarker(title) {
 	this.playing = false;
 	this.gmarker = new google.maps.Marker({
 	    map: map,
-	    title: title
+	    title: title,
+		icon: {
+	    	path: google.maps.SymbolPath.CIRCLE,
+			scale: 10,
+			fillColor: "#4285F4",
+			fillOpacity: 1.0,
+			strokeColor: "white",
+			strokeOpacity: 1.0,
+			strokeWeight: 3
+		}
 	 });
 	 this.position = {lat: 0.0, lng: 0.0};
 	 
@@ -115,6 +125,9 @@ function AnimatedMarker(title) {
 		var intermediateLong = this.position.lng + longToAdd;
 		var intermediatePosition = {lat: intermediateLat, lng: intermediateLong};
 		this.gmarker.setPosition(intermediatePosition);
+		if (follow) {
+			map.setCenter(intermediatePosition);
+		}
 		var t = this;
 		if (frameNumber == framesRequired) {
 			this.updatePosition(destination);
