@@ -54,6 +54,7 @@ function loadMap() {
 
 function AnimatedMarker(title) {
 	this.buffer = [];
+	this.polylinePoints = []; 
 	this.animatedTo = 0;
 	this.playing = false;
 	this.gmarker = new google.maps.Marker({
@@ -68,6 +69,14 @@ function AnimatedMarker(title) {
 			strokeOpacity: 1.0,
 			strokeWeight: 3
 		}
+	 });
+	 this.gpolyline = new google.maps.Polyline({
+		 path: this.polylinePoints,
+		 geodesic: false,
+		 strokeColor: "#4285F4",
+		 strokeOpacity: 0.8,
+		 strokeWeight: 5,
+		 map: map
 	 });
 	 this.position = {lat: 0.0, lng: 0.0};
 	 
@@ -100,12 +109,15 @@ function AnimatedMarker(title) {
 	};
 	
 	this.updatePosition = function(aPosition) {
+		this.polylinePoints.push(aPosition);
 		this.position = aPosition;
 		this.renderPosition();	
 	};
 	
 	this.renderPosition = function() {
 		this.gmarker.setPosition(this.position);
+		this.gpolyline.setPath(this.polylinePoints);
+		console.log(this.polylinePoints)
 	};
 	
 	this.animate = function(destination, duration) {
