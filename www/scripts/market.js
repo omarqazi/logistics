@@ -1,7 +1,8 @@
 var trackedUser = "a5d5ce3c-9b83-4457-9b1a-4159f793cbe2";
 var websock;
 var map = null;
-var marker = null;
+var markers = {};
+var changed = false;
 
 $(window).load(function() {
 	var webSocketUrl = "ws://localhost:8080/locations/";
@@ -22,17 +23,22 @@ $(window).load(function() {
 		console.log(userPayload);
 		var myLatLng = {lat: userPayload.Latitude, lng: userPayload.Longitude};
 		
-		if (marker !== null) {
+		var marker = markers[userPayload.Id];
+		if (marker !== null && marker !== undefined) {
 			marker.setPosition(myLatLng);
 		} else {
 	  	  marker = new google.maps.Marker({
 	  	    position: myLatLng,
 	  	    map: map,
-	  	    title: 'Hello World!'
-	  	  });	
+	  	    title: userPayload.Id
+	  	  });
+		  markers[userPayload.Id] = marker;
 		}
 		
-	  	map.setCenter(myLatLng);
+		if (!changed) {
+		  	map.setCenter(myLatLng);
+			changed = true;	
+		}
 	};
 	
 	websock.onerror = function(evt) {

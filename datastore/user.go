@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/omarqazi/logistics/auth"
+	"log"
 	"time"
 )
 
@@ -112,6 +113,9 @@ func (u User) BroadcastUpdate() (err error) {
 	}
 
 	err = PublishNotification(u.Channel(), jsonString)
+	if err != nil {
+		log.Println("Error broadcasting update:", err)
+	}
 	return
 }
 
@@ -168,4 +172,59 @@ func (u *User) Delete() (err error) {
 	_, err = deleteUserStatement.Exec(u.Id)
 	u.BroadcastUpdate()
 	return
+}
+
+var changeSubscribers = make(map[string][]chan string)
+
+func (u User) ChangeJSON() chan string {
+	changeChannel := make(chan string, 10)
+	userChannel := "user-*" //u.Channel()
+	if channelArray, ok := changeSubscribers[userChannel]; ok {
+		changeSubscribers[userChannel] = append(channelArray, changeChannel)
+	} else {
+		newArray := make([]chan string, 0)
+		changeSubscribers[userChannel] = append(newArray, changeChannel)
+	}
+	return changeChannel
+}
+
+func init() {
+	go monitorUserChanges()
+}
+
+func monitorUserChanges() {
+	pubsub, err := Redis.PSubscribe("user-*")
+	if err != nil {
+		log.Fatalln("Error: could not connect to redis for change notifications")
+		return
+	}
+
+	for {
+		msg, err := pubsub.ReceiveMessage()
+		if err != nil {
+			log.Println(err)
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		channel := msg.Channel
+		payload := msg.Payload
+
+		subscriberKeysToNotify := []string{channel, "user-*"}
+		for _, subscriberKey := range subscriberKeysToNotify {
+			if subscribers, ok := changeSubscribers[subscriberKey]; ok {
+				newSubscriberList := make([]chan string, 0)
+
+				for _, payloadChan := range subscribers {
+					select {
+					case payloadChan <- payload:
+						newSubscriberList = append(newSubscriberList, payloadChan)
+					default:
+					}
+				}
+
+				changeSubscribers[subscriberKey] = newSubscriberList
+			}
+		}
+	}
 }

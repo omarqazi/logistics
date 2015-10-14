@@ -46,15 +46,14 @@ func WebSocketServer(ws *websocket.Conn) {
 		return
 	}
 
+	changeChannel := user.ChangeJSON()
 	for {
-		_, payload, err := datastore.ReceiveMessage(user.Channel())
-		if err != nil {
-			log.Println("WebSocket Error:", err)
+		payload, ok := <-changeChannel
+		if !ok {
 			return
 		}
 		if _, err := fmt.Fprintln(ws, payload); err != nil {
-			// client probably closed socket
-			return
+			return // client probably closed socket
 		}
 	}
 }
