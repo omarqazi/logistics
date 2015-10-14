@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"database/sql"
 	"encoding/json"
+	"github.com/lib/pq"
 	"github.com/omarqazi/logistics/auth"
 	"log"
 	"time"
@@ -15,19 +16,22 @@ var updateUserStatement *sql.Stmt
 var deleteUserStatement *sql.Stmt
 
 type User struct {
-	Id        string
-	PublicKey string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeviceId  string // for push notifications
-	Latitude  float64
-	Longitude float64
+	Id               string
+	PublicKey        string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	LocatedAt        time.Time
+	DeviceId         string // for push notifications
+	Latitude         float64
+	Longitude        float64
+	LatestLocationId string `json:"-"`
 }
 
 func GetUser(userId string) (u *User, err error) {
 	query := `
 	select id, public_key, createdat, updatedat, device_id,
-	ST_Y(location) as longitude, ST_X(location) as latitude
+	ST_Y(location) as longitude, ST_X(location) as latitude,
+	latest_location_id, location_recorded
 	from users where id = $1
 	`
 	if getUserStatement == nil {
@@ -39,6 +43,8 @@ func GetUser(userId string) (u *User, err error) {
 
 	u = &User{}
 	var lat, lon sql.NullFloat64
+	var locationId sql.NullString
+	var locatedAt pq.NullTime
 	err = getUserStatement.QueryRow(userId).Scan(
 		&u.Id,
 		&u.PublicKey,
@@ -47,6 +53,8 @@ func GetUser(userId string) (u *User, err error) {
 		&u.DeviceId,
 		&lat,
 		&lon,
+		&locationId,
+		&locatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -63,6 +71,14 @@ func GetUser(userId string) (u *User, err error) {
 		u.Longitude = lon.Float64
 	} else {
 		u.Longitude = 0.0
+	}
+
+	if locationId.Valid {
+		u.LatestLocationId = locationId.String
+	}
+
+	if locatedAt.Valid {
+		u.LocatedAt = locatedAt.Time
 	}
 	return
 }
@@ -123,9 +139,9 @@ func (u *User) Create() (err error) {
 	if insertUserStatement == nil {
 		insertUserStatement, err = Postgres.Prepare(`
 		insert into users (
-			id, public_key, createdat, updatedat, device_id, location
+			id, public_key, createdat, updatedat, device_id, location, latest_location_id, location_recorded
 		) VALUES (
-			$1, $2, now(), now(), $3, ST_GeometryFromText($4, 4326)
+			$1, $2, now(), now(), $3, ST_GeometryFromText($4, 4326), $5, $6
 		);
 		`)
 
@@ -136,8 +152,8 @@ func (u *User) Create() (err error) {
 
 	u.EnsureId()
 	u.UpdateTimestamps(true)
-
-	_, err = insertUserStatement.Exec(u.Id, u.PublicKey, u.DeviceId, u.Location())
+	llid := sql.NullString{u.LatestLocationId, (u.LatestLocationId != "")}
+	_, err = insertUserStatement.Exec(u.Id, u.PublicKey, u.DeviceId, u.Location(), llid, u.LocatedAt)
 	u.BroadcastUpdate()
 	return
 }
@@ -146,15 +162,17 @@ func (u *User) Update() (err error) {
 	if updateUserStatement == nil {
 		updateUserStatement, err = Postgres.Prepare(`
 			update users set public_key = $1, updatedat = now(), device_id = $2,
-			location = ST_GeometryFromText($3, 4326) where id = $4;
+			location = ST_GeometryFromText($3, 4326), latest_location_id = $4, location_recorded = $5 where id = $6;
 		`)
 		if err != nil {
 			return err
 		}
 	}
 
+	llid := sql.NullString{u.LatestLocationId, (u.LatestLocationId != "")}
+
 	u.UpdateTimestamps(false)
-	_, err = updateUserStatement.Exec(u.PublicKey, u.DeviceId, u.Location(), u.Id)
+	_, err = updateUserStatement.Exec(u.PublicKey, u.DeviceId, u.Location(), llid, u.LocatedAt, u.Id)
 	u.BroadcastUpdate()
 	return
 }

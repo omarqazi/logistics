@@ -49,6 +49,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 	user.Latitude = 0.0
 	user.Longitude = 0.0
+	user.LocatedAt = user.CreatedAt
 	user.UpdatedAt = user.CreatedAt
 	user.DeviceId = "[redacted]"
 
@@ -121,8 +122,16 @@ func putUser(w http.ResponseWriter, r *http.Request) {
 		user.Longitude = dbUser.Longitude
 	}
 
+	if user.LatestLocationId == "" {
+		user.LatestLocationId = dbUser.LatestLocationId
+	}
+
+	if user.LocatedAt.Before(dbUser.LocatedAt) {
+		user.LocatedAt = dbUser.LocatedAt
+	}
+
 	if err := user.Update(); err != nil {
-		log.Println("Error updating user", user)
+		log.Println("Error updating user", user, err)
 		http.Error(w, "Error updating user", 500)
 	}
 
