@@ -117,7 +117,6 @@ function AnimatedMarker(title) {
 	this.renderPosition = function() {
 		this.gmarker.setPosition(this.position);
 		this.gpolyline.setPath(this.polylinePoints);
-		console.log(this.polylinePoints)
 	};
 	
 	this.animate = function(destination, duration) {
