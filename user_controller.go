@@ -51,7 +51,6 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	user.Longitude = 0.0
 	user.LocatedAt = user.CreatedAt
 	user.UpdatedAt = user.CreatedAt
-	user.DeviceId = "[redacted]"
 
 	bytes, err := json.Marshal(user)
 	if err != nil {
